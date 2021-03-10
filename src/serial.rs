@@ -37,7 +37,7 @@ pub fn serialize<T: std::fmt::Debug>(t: T) -> String {
 }
 
 /* ---------------------------------------------------------------------- */
-/*                            T R A I T S                                 */
+/*                      D E S E R I A L I Z A T I O N                     */
 /* ---------------------------------------------------------------------- */
 
 #[derive(Debug, serde::Deserialize)]
@@ -121,10 +121,6 @@ macro_rules! impl_from_tuple {
 }
 
 impl_from_tuple!(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,);
-
-/* ---------------------------------------------------------------------- */
-/*                      D E S E R I A L I Z A T I O N                     */
-/* ---------------------------------------------------------------------- */
 
 pub fn deserialize(serial: &str) -> DeSerialResult {
     serde_json::from_str(serial).unwrap()
