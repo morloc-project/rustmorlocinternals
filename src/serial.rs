@@ -3,7 +3,7 @@
 /* ---------------------------------------------------------------------- */
 
 pub fn serial<T: std::fmt::Debug>(t: T) -> String {
-    format!("{:?}", t)
+    format!("{:?}", t).replace("(", "[").replace(")", "]")
 }
 
 #[cfg(test)]
@@ -43,5 +43,11 @@ mod tests {
     fn test_serial_vec() {
         assert_eq!("[1, 2, 3]", &serial(&[1, 2, 3]));
         assert_eq!("[[1, 2], [3, 4], [5, 6]]", &serial(&[[1, 2], [3, 4], [5, 6]]));
+    }
+
+    #[test]
+    fn test_serial_tuple() {
+        assert_eq!("[1, 2.48]", &serial((1, 2.48)));
+        assert_eq!("[1, 2.48, \"asdf\"]", &serial((1, 2.48, "asdf")));
     }
 }
