@@ -95,6 +95,33 @@ impl<T: From<DeSerialResult>> From<DeSerialResult> for Vec<T> {
     }
 }
 
+// Don't you just love recursive macros :>
+macro_rules! impl_from_tuple {
+    () => { };
+
+    ($A: ident, $($I: ident,)*) => {
+        // Create previous implementation
+        impl_from_tuple!($($I,)*);
+
+        // Current implementation
+        impl<$A: From<DeSerialResult>, $($I: From<DeSerialResult>),*> From<DeSerialResult> for ($A, $($I),*) {
+            fn from(v: DeSerialResult) -> ($A, $($I),*) {
+                match v {
+                    // Create tuple from iterator
+                    DeSerialResult::Vec(v) => {
+                        let mut v = v.into_iter();
+                        (v.next().unwrap().into(), $(Into::<$I>::into(v.next().unwrap())),*)
+                    }
+
+                    _ => panic!("{:?} cannot be converted into a tuple!", v)
+                }
+            }
+        }
+    }
+}
+
+impl_from_tuple!(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,);
+
 /* ---------------------------------------------------------------------- */
 /*                      D E S E R I A L I Z A T I O N                     */
 /* ---------------------------------------------------------------------- */
@@ -185,5 +212,13 @@ mod tests {
         assert_eq!("[1, 2.48]", &serialize((1, 2.48)));
         assert_eq!("[1, 2.48, \"asdf\"]", &serialize((1, 2.48, "asdf")));
         assert_eq!("[1, 2.48, \"as\\\"()df\"]", &serialize((1, 2.48, "as\"()df")));
+    }
+
+    #[test]
+    fn test_deserialize_tuple() {
+        let v: (i64, f64) = deserialize("[1, 2.48]").into();
+        assert_eq!((1, 2.48), v);
+        let v: (i64, f64, String) = deserialize("[1, 2.48, \"asdf\"]").into();
+        assert_eq!((1, 2.48, String::from("asdf")), v);
     }
 }
