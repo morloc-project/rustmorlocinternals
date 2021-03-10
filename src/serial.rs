@@ -3,7 +3,37 @@
 /* ---------------------------------------------------------------------- */
 
 pub fn serial<T: std::fmt::Debug>(t: T) -> String {
-    format!("{:?}", t).replace("(", "[").replace(")", "]")
+    let formatted = format!("{:?}", t);
+    let mut built = String::new();
+    let mut in_str = false;
+    let mut escaped = false;
+
+    for c in formatted.chars() {
+        built.push({
+            let last_escape = escaped;
+            let c = match c {
+                '\"' if !escaped => {
+                    in_str ^= true;
+                    '\"'
+                }
+
+                '\\' if in_str => {
+                    escaped = true;
+                    '\\'
+                }
+
+                '(' if !in_str => '[',
+                ')' if !in_str => ']',
+
+                c => c
+            };
+            if last_escape {
+                escaped = false;
+            }
+            c
+        });
+    }
+    built
 }
 
 #[cfg(test)]
@@ -49,5 +79,6 @@ mod tests {
     fn test_serial_tuple() {
         assert_eq!("[1, 2.48]", &serial((1, 2.48)));
         assert_eq!("[1, 2.48, \"asdf\"]", &serial((1, 2.48, "asdf")));
+        assert_eq!("[1, 2.48, \"as\\\"()df\"]", &serial((1, 2.48, "as\"()df")));
     }
 }
