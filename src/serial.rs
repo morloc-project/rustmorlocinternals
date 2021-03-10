@@ -36,7 +36,12 @@ pub fn serialize<T: std::fmt::Debug>(t: T) -> String {
     built
 }
 
-#[derive(Debug)]
+/* ---------------------------------------------------------------------- */
+/*                            T R A I T S                                 */
+/* ---------------------------------------------------------------------- */
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(untagged)]
 pub enum DeSerialResult {
     Bool(bool),
     Int(i64),
@@ -81,16 +86,21 @@ impl From<DeSerialResult> for String {
     }
 }
 
-impl<T: From<DeSerialResult>> Into<Vec<T>> for DeSerialResult {
-    fn into(self) -> Vec<T> {
-        match self {
+impl<T: From<DeSerialResult>> From<DeSerialResult> for Vec<T> {
+    fn from(v: DeSerialResult) -> Vec<T> {
+        match v {
             DeSerialResult::Vec(v) => v.into_iter().map(|v| v.into()).collect(),
-            _ => panic!("{:?} cannot be converted into a bool!", self)
+            _ => panic!("{:?} cannot be converted into a Vec!", v)
         }
     }
 }
 
-pub fn deserialize(serial: &str) {
+/* ---------------------------------------------------------------------- */
+/*                      D E S E R I A L I Z A T I O N                     */
+/* ---------------------------------------------------------------------- */
+
+pub fn deserialize(serial: &str) -> DeSerialResult {
+    serde_json::from_str(serial).unwrap()
 }
 
 #[cfg(test)]
@@ -104,11 +114,25 @@ mod tests {
     }
 
     #[test]
+    fn test_deserialize_bool() {
+        assert_eq!(true, Into::<bool>::into(deserialize("true")));
+        assert_eq!(false, Into::<bool>::into(deserialize("false")));
+    }
+
+    #[test]
     fn test_serialize_int() {
         assert_eq!("-21", &serialize(-21));
         assert_eq!("-2", &serialize(-2));
         assert_eq!("0", &serialize(0));
         assert_eq!("21", &serialize(21));
+    }
+
+    #[test]
+    fn test_deserialize_int() {
+        assert_eq!(-21, Into::<i64>::into(deserialize("-21")));
+        assert_eq!(-2, Into::<i64>::into(deserialize("-2")));
+        assert_eq!(0, Into::<i64>::into(deserialize("0")));
+        assert_eq!(21, Into::<i64>::into(deserialize("21")));
     }
 
     #[test]
@@ -121,9 +145,25 @@ mod tests {
     }
 
     #[test]
+    fn test_deserialize_float() {
+        assert_eq!(-1.28, Into::<f64>::into(deserialize("-1.28")));
+        assert_eq!(-0.12, Into::<f64>::into(deserialize("-0.12")));
+        assert_eq!(0.0, Into::<f64>::into(deserialize("0.0")));
+        assert_eq!(0.12, Into::<f64>::into(deserialize("0.12")));
+        assert_eq!(1.28, Into::<f64>::into(deserialize("1.28")));
+    }
+
+
+    #[test]
     fn test_serialize_str() {
         assert_eq!("\"asdf\"", &serialize("asdf"));
         assert_eq!("\"as\\\"df\"", &serialize("as\"df"));
+    }
+
+    #[test]
+    fn test_deserialize_str() {
+        assert_eq!("asdf", &Into::<String>::into(deserialize("\"asdf\"")));
+        assert_eq!("as\"df", &Into::<String>::into(deserialize("\"as\\\"df\"")));
     }
 
     #[test]
@@ -133,14 +173,17 @@ mod tests {
     }
 
     #[test]
+    fn test_deserialize_vec() {
+        let v: Vec<i64> = deserialize("[1, 2, 3]").into();
+        assert_eq!(vec![1, 2, 3], v);
+        let v: Vec<Vec<i64>> = deserialize("[[1, 2], [3, 4], [5, 6]]").into();
+        assert_eq!(vec![vec![1, 2], vec![3, 4], vec![5, 6]], v);
+    }
+
+    #[test]
     fn test_serialize_tuple() {
         assert_eq!("[1, 2.48]", &serialize((1, 2.48)));
         assert_eq!("[1, 2.48, \"asdf\"]", &serialize((1, 2.48, "asdf")));
         assert_eq!("[1, 2.48, \"as\\\"()df\"]", &serialize((1, 2.48, "as\"()df")));
-    }
-
-    fn _testy() {
-        let _: i64 = DeSerialResult::Int(0).into();
-        let _: Vec<i64> = DeSerialResult::Vec(vec![DeSerialResult::Int(1)]).into();
     }
 }
