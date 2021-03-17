@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 /* ---------------------------------------------------------------------- */
 /*                       S E R I A L I Z A T I O N                        */
 /* ---------------------------------------------------------------------- */
@@ -119,7 +121,8 @@ pub enum DeSerialResult {
     Int(i64),
     Float(f64),
     String(String),
-    Vec(Vec<DeSerialResult>)
+    Vec(Vec<DeSerialResult>),
+    Struct(HashMap<String, DeSerialResult>)
 }
 
 impl From<DeSerialResult> for bool {
@@ -288,5 +291,42 @@ mod tests {
         assert_eq!((1, 2.48), v);
         let v: (i64, f64, String) = deserialize("[1, 2.48, \"asdf\"]").into();
         assert_eq!((1, 2.48, String::from("asdf")), v);
+    }
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct Person {
+        name: String,
+        age: i64
+    }
+
+    impl Serialize for Person {
+        fn serialize(&self) -> String {
+            format!("{{\"name\": {}, \"age\": {}}}", self.name.serialize(), self.age.serialize())
+        }
+    }
+
+    impl From<DeSerialResult> for Person {
+        fn from(s: DeSerialResult) -> Person {
+            match s {
+                DeSerialResult::Struct(mut map) => Person {
+                    name: map.remove("name").unwrap().into(),
+                    age: map.remove("age").unwrap().into()
+                },
+
+                _ => panic!("cannot convert {:?} into Person", s)
+            }
+        }
+    }
+
+    #[test]
+    fn test_serialize_struct() {
+        let v = Person { name: String::from("test name"), age: -1 };
+        assert_eq!("{\"name\": \"test name\", \"age\": -1}", &v.serialize());
+    }
+
+    #[test]
+    fn test_deserialize_struct() {
+        let v: Person = deserialize("{\"name\": \"test name\", \"age\": -1}").into();
+        assert_eq!(Person { name: String::from("test name"), age: -1 }, v);
     }
 }
