@@ -3,79 +3,35 @@
 /* ---------------------------------------------------------------------- */
 
 pub trait Serialize {
-    fn serialize(self) -> String;
-}
-
-impl Serialize for &bool {
-    fn serialize(self) -> String {
-        format!("{}", self)
-    }
+    fn serialize(&self) -> String;
 }
 
 impl Serialize for bool {
-    fn serialize(self) -> String {
-        format!("{}", self)
-    }
-}
-
-impl Serialize for &i64 {
-    fn serialize(self) -> String {
+    fn serialize(&self) -> String {
         format!("{}", self)
     }
 }
 
 impl Serialize for i64 {
-    fn serialize(self) -> String {
+    fn serialize(&self) -> String {
         format!("{}", self)
     }
 }
 
-impl Serialize for &f64 {
-    fn serialize(self) -> String {
-        format!("{:?}", self)
-    }
-}
-
 impl Serialize for f64 {
-    fn serialize(self) -> String {
-        format!("{:?}", self)
-    }
-}
-
-impl Serialize for &str {
-    fn serialize(self) -> String {
+    fn serialize(&self) -> String {
         format!("{:?}", self)
     }
 }
 
 impl Serialize for String {
-    fn serialize(self) -> String {
+    fn serialize(&self) -> String {
         format!("{:?}", self)
     }
 }
 
-impl<T: Serialize + Copy> Serialize for &Vec<T> {
-    fn serialize(self) -> String {
-        let mut built = String::from("[");
-        let mut comma = false;
-
-        for i in self {
-            if comma {
-                built.push_str(", ");
-            } else {
-                comma = true;
-            }
-
-            built.push_str(&i.serialize());
-        }
-
-        built.push(']');
-        built
-    }
-}
-
 impl<T: Serialize> Serialize for Vec<T> {
-    fn serialize(self) -> String {
+    fn serialize(&self) -> String {
         let mut built = String::from("[");
         let mut comma = false;
 
@@ -102,27 +58,9 @@ macro_rules! impl_serialize_tuple {
         impl_serialize_tuple!($($I => $i,)*);
 
         // Current implementation
-        impl<$A: Serialize + Copy, $($I: Serialize + Copy),*> Serialize for &($A,$($I,)*) {
-            #[allow(unused_mut)]
-            fn serialize(self) -> String {
-                let mut built = String::from("[");
-                built.push_str(&self.0.serialize());
-                let mut parts: Vec<String> = Vec::with_capacity(23);
-
-                $(parts.push(self.$i.serialize());)*
-
-                for p in parts.into_iter().rev() {
-                    built.push_str(", ");
-                    built.push_str(&p);
-                }
-                built.push(']');
-                built
-            }
-        }
-
         impl<$A: Serialize, $($I: Serialize),*> Serialize for ($A,$($I,)*) {
             #[allow(unused_mut)]
-            fn serialize(self) -> String {
+            fn serialize(&self) -> String {
                 let mut built = String::from("[");
                 built.push_str(&self.0.serialize());
                 let mut parts: Vec<String> = Vec::with_capacity(23);
@@ -166,7 +104,7 @@ impl_serialize_tuple!(
     W => 1,
 );
 
-pub fn serialize<T: Serialize>(t: T) -> String {
+pub fn serialize<T: Serialize>(t: &T) -> String {
     t.serialize()
 }
 
@@ -267,8 +205,8 @@ mod tests {
 
     #[test]
     fn test_serialize_bool() {
-        assert_eq!("true", &serialize(true));
-        assert_eq!("false", &serialize(false));
+        assert_eq!("true", &serialize(&true));
+        assert_eq!("false", &serialize(&false));
     }
 
     #[test]
@@ -279,10 +217,10 @@ mod tests {
 
     #[test]
     fn test_serialize_int() {
-        assert_eq!("-21", &serialize(-21));
-        assert_eq!("-2", &serialize(-2));
-        assert_eq!("0", &serialize(0));
-        assert_eq!("21", &serialize(21));
+        assert_eq!("-21", &serialize(&-21));
+        assert_eq!("-2", &serialize(&-2));
+        assert_eq!("0", &serialize(&0));
+        assert_eq!("21", &serialize(&21));
     }
 
     #[test]
@@ -295,11 +233,11 @@ mod tests {
 
     #[test]
     fn test_serialize_float() {
-        assert_eq!("-1.28", &serialize(-1.28));
-        assert_eq!("-0.12", &serialize(-0.12));
-        assert_eq!("0.0", &serialize(0.0));
-        assert_eq!("0.12", &serialize(0.12));
-        assert_eq!("1.28", &serialize(1.28));
+        assert_eq!("-1.28", &serialize(&-1.28));
+        assert_eq!("-0.12", &serialize(&-0.12));
+        assert_eq!("0.0", &serialize(&0.0));
+        assert_eq!("0.12", &serialize(&0.12));
+        assert_eq!("1.28", &serialize(&1.28));
     }
 
     #[test]
@@ -314,8 +252,8 @@ mod tests {
 
     #[test]
     fn test_serialize_str() {
-        assert_eq!("\"asdf\"", &serialize("asdf"));
-        assert_eq!("\"as\\\"df\"", &serialize("as\"df"));
+        assert_eq!("\"asdf\"", &serialize(&String::from("asdf")));
+        assert_eq!("\"as\\\"df\"", &serialize(&String::from("as\"df")));
     }
 
     #[test]
@@ -326,8 +264,8 @@ mod tests {
 
     #[test]
     fn test_serialize_vec() {
-        assert_eq!("[1, 2, 3]", &serialize(vec![1, 2, 3]));
-        assert_eq!("[[1, 2], [3, 4], [5, 6]]", &serialize(vec![vec![1, 2], vec![3, 4], vec![5, 6]]));
+        assert_eq!("[1, 2, 3]", &serialize(&vec![1, 2, 3]));
+        assert_eq!("[[1, 2], [3, 4], [5, 6]]", &serialize(&vec![vec![1, 2], vec![3, 4], vec![5, 6]]));
     }
 
     #[test]
@@ -340,9 +278,8 @@ mod tests {
 
     #[test]
     fn test_serialize_tuple() {
-        assert_eq!("[1, 2.48]", &serialize((1, 2.48)));
-        assert_eq!("[1, 2.48, \"asdf\"]", &serialize((1, 2.48, "asdf")));
-        assert_eq!("[1, 2.48, \"as\\\"()df\"]", &serialize((1, 2.48, "as\"()df")));
+        assert_eq!("[1, 2.48]", &serialize(&(1, 2.48)));
+        assert_eq!("[1, 2.48, \"asdf\"]", &serialize(&(1, 2.48, String::from("asdf"))));
     }
 
     #[test]
