@@ -71,6 +71,7 @@ impl From<DeSerialResult> for i64 {
 impl From<DeSerialResult> for f64 {
     fn from(v: DeSerialResult) -> f64 {
         match v {
+            DeSerialResult::Int(i) => i as f64,
             DeSerialResult::Float(f) => f,
             _ => panic!("{:?} cannot be converted into a f64!", v)
         }
