@@ -6,7 +6,19 @@ pub trait Serialize {
     fn serialize(self) -> String;
 }
 
+impl Serialize for &bool {
+    fn serialize(self) -> String {
+        format!("{}", self)
+    }
+}
+
 impl Serialize for bool {
+    fn serialize(self) -> String {
+        format!("{}", self)
+    }
+}
+
+impl Serialize for &i64 {
     fn serialize(self) -> String {
         format!("{}", self)
     }
@@ -15,6 +27,12 @@ impl Serialize for bool {
 impl Serialize for i64 {
     fn serialize(self) -> String {
         format!("{}", self)
+    }
+}
+
+impl Serialize for &f64 {
+    fn serialize(self) -> String {
+        format!("{:?}", self)
     }
 }
 
@@ -33,6 +51,26 @@ impl Serialize for &str {
 impl Serialize for String {
     fn serialize(self) -> String {
         format!("{:?}", self)
+    }
+}
+
+impl<T: Serialize + Copy> Serialize for &Vec<T> {
+    fn serialize(self) -> String {
+        let mut built = String::from("[");
+        let mut comma = false;
+
+        for i in self {
+            if comma {
+                built.push_str(", ");
+            } else {
+                comma = true;
+            }
+
+            built.push_str(&i.serialize());
+        }
+
+        built.push(']');
+        built
     }
 }
 
@@ -64,6 +102,24 @@ macro_rules! impl_serialize_tuple {
         impl_serialize_tuple!($($I => $i,)*);
 
         // Current implementation
+        impl<$A: Serialize + Copy, $($I: Serialize + Copy),*> Serialize for &($A,$($I,)*) {
+            #[allow(unused_mut)]
+            fn serialize(self) -> String {
+                let mut built = String::from("[");
+                built.push_str(&self.0.serialize());
+                let mut parts: Vec<String> = Vec::with_capacity(23);
+
+                $(parts.push(self.$i.serialize());)*
+
+                for p in parts.into_iter().rev() {
+                    built.push_str(", ");
+                    built.push_str(&p);
+                }
+                built.push(']');
+                built
+            }
+        }
+
         impl<$A: Serialize, $($I: Serialize),*> Serialize for ($A,$($I,)*) {
             #[allow(unused_mut)]
             fn serialize(self) -> String {
