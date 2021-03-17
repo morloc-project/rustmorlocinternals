@@ -2,6 +2,108 @@
 /*                       S E R I A L I Z A T I O N                        */
 /* ---------------------------------------------------------------------- */
 
+pub trait Serialize {
+    fn serialize(self) -> String;
+}
+
+impl Serialize for bool {
+    fn serialize(self) -> String {
+        format!("{}", self)
+    }
+}
+
+impl Serialize for i64 {
+    fn serialize(self) -> String {
+        format!("{}", self)
+    }
+}
+
+impl Serialize for f64 {
+    fn serialize(self) -> String {
+        format!("{}", self)
+    }
+}
+
+impl Serialize for String {
+    fn serialize(self) -> String {
+        format!("{:?}", self)
+    }
+}
+
+impl<T: Serialize> Serialize for Vec<T> {
+    fn serialize(self) -> String {
+        let mut built = String::from("[");
+        let mut comma = false;
+
+        for i in self {
+            if comma {
+                built.push_str(", ");
+            } else {
+                comma = true;
+            }
+
+            built.push_str(&i.serialize());
+        }
+
+        built.push(']');
+        built
+    }
+}
+
+macro_rules! impl_serialize_tuple {
+    () => { };
+
+    ($A: ident => $a: literal, $($I: ident => $i: tt,)*) => {
+        // Create previous implementation
+        impl_serialize_tuple!($($I => $i,)*);
+
+        // Current implementation
+        impl<$A: Serialize, $($I: Serialize),*> Serialize for ($A,$($I,)*) {
+            #[allow(unused_mut)]
+            fn serialize(self) -> String {
+                let mut built = String::from("[");
+                built.push_str(&self.0.serialize());
+                let mut parts: Vec<String> = Vec::with_capacity(23);
+
+                $(parts.push(self.$i.serialize());)*
+
+                for p in parts.into_iter().rev() {
+                    built.push_str(", ");
+                    built.push_str(&p);
+                }
+                built.push(']');
+                built
+            }
+        }
+    }
+}
+
+impl_serialize_tuple!(
+    A => 23,
+    B => 22,
+    C => 21,
+    D => 20,
+    E => 19,
+    F => 18,
+    G => 17,
+    H => 16,
+    I => 15,
+    J => 14,
+    K => 13,
+    L => 12,
+    M => 11,
+    N => 10,
+    O => 9,
+    P => 8,
+    Q => 7,
+    R => 6,
+    S => 5,
+    T => 4,
+    U => 3,
+    V => 2,
+    W => 1,
+);
+
 pub fn serialize<T: std::fmt::Debug>(t: T) -> String {
     let formatted = format!("{:?}", t);
     let mut built = String::new();
