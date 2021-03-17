@@ -20,7 +20,13 @@ impl Serialize for i64 {
 
 impl Serialize for f64 {
     fn serialize(self) -> String {
-        format!("{}", self)
+        format!("{:?}", self)
+    }
+}
+
+impl Serialize for &str {
+    fn serialize(self) -> String {
+        format!("{:?}", self)
     }
 }
 
@@ -104,38 +110,8 @@ impl_serialize_tuple!(
     W => 1,
 );
 
-pub fn serialize<T: std::fmt::Debug>(t: T) -> String {
-    let formatted = format!("{:?}", t);
-    let mut built = String::new();
-    let mut in_str = false;
-    let mut escaped = false;
-
-    for c in formatted.chars() {
-        built.push({
-            let last_escape = escaped;
-            let c = match c {
-                '\"' if !escaped => {
-                    in_str ^= true;
-                    '\"'
-                }
-
-                '\\' if in_str => {
-                    escaped = true;
-                    '\\'
-                }
-
-                '(' if !in_str => '[',
-                ')' if !in_str => ']',
-
-                c => c
-            };
-            if last_escape {
-                escaped = false;
-            }
-            c
-        });
-    }
-    built
+pub fn serialize<T: Serialize>(t: T) -> String {
+    t.serialize()
 }
 
 /* ---------------------------------------------------------------------- */
@@ -294,8 +270,8 @@ mod tests {
 
     #[test]
     fn test_serialize_vec() {
-        assert_eq!("[1, 2, 3]", &serialize(&[1, 2, 3]));
-        assert_eq!("[[1, 2], [3, 4], [5, 6]]", &serialize(&[[1, 2], [3, 4], [5, 6]]));
+        assert_eq!("[1, 2, 3]", &serialize(vec![1, 2, 3]));
+        assert_eq!("[[1, 2], [3, 4], [5, 6]]", &serialize(vec![vec![1, 2], vec![3, 4], vec![5, 6]]));
     }
 
     #[test]
